@@ -2,64 +2,38 @@
 #include "GLWidget3D.h"
 #include <GL/GLU.h>
 
-SPH::SPH(int num_particles, float radius_of_particle, float radius_of_smooth, float pressure_factor, float viscosity_factor, float density_0, float radius_of_container, float height_of_container, float deltaT) {
-	particles.resize(num_particles);
+#define SQR(x)	((x) * (x))
+
+SPH::SPH(float radius_of_particle, float radius_of_smooth, float pressure_factor, float viscosity_factor, float density_0, float dumping_factor, float container_width, float container_depth, float container_height, float deltaT) {
 	this->radius_of_particle = radius_of_particle;
 	this->radius_of_smooth = radius_of_smooth;
-	this->mass_of_particle = radius_of_container * radius_of_container * M_PI * height_of_container / num_particles;
+	this->mass_of_particle = 10;//density_0 * container_width * container_depth * container_height / num_particles;
 	this->pressure_factor = pressure_factor;
 	this->viscosity_factor = viscosity_factor;
 	this->density_0 = density_0;
-	this->radius_of_container = radius_of_container;
-	this->height_of_container = height_of_container;
+	this->dumping_factor = dumping_factor;
+	this->container_width = container_width;
+	this->container_depth = container_depth;
+	this->container_height = container_height;
 	this->deltaT = deltaT;
 
 	// randomly generate particles
-	for (int i = 0; i < num_particles; ++i) {
-		float x, y;
-		while (true) {
-			//x = radius_of_container * 2 * random() - radius_of_container;
-			//y = radius_of_container * 2 * random() - radius_of_container;
-			x = radius_of_container *  random() - radius_of_container * 0.5;
-			y = radius_of_container *  random() - radius_of_container * 0.5;
-			if (x * x + y * y < radius_of_container * radius_of_container) break;
-		}
-		float z = height_of_container * random();
-
-		particles[i].position = QVector3D(x, y, z);
-
-		int r = random() * 255;
-		int g = random() * 255;
-		int b = random() * 255;
-		particles[i].color = QColor(r, g, b);
-	}
-
-	// build a container
-	/*
-	for (float x = -radius_of_container; x <= radius_of_container; x += radius_of_particle) {
-		for (float y = -radius_of_container; y <= radius_of_container; y += radius_of_particle) {
-			if (x * x + y * y > radius_of_container * radius_of_container) continue;
-
-			Particle particle(QVector3D(x, y, 0));
-			particle.color = QColor(128, 128, 128);
-			containers.push_back(particle);
-			//containers.push_back(Particle(QVector3D(x, y, height_of_container)));
+	for (float x = container_width * 0.3; x <= container_width * 0.5 - radius_of_particle; x += radius_of_particle * 2) {
+		for (float y = -container_depth * 0.5 + radius_of_particle; y <= container_depth * 0.5 - radius_of_particle; y += radius_of_particle * 2) {
+			for (float z = radius_of_particle; z < container_height * 0.5; z += radius_of_particle * 2) {
+				Particle particle(QVector3D(x, y, z));
+				int r = random() * 255;
+				int g = random() * 255;
+				int b = random() * 255;
+				particle.color = QColor(r, g, b);
+				particles.push_back(particle);
+			}
 		}
 	}
-	*/
-	/*
-	for (float z = radius_of_particle * 0.5; z < height_of_container; z += radius_of_particle * 0.5) {
-		float d_theta = radius_of_container * 2 * M_PI / radius_of_particle * 2;
-		for (float theta = 0.0f; theta < M_PI * 2; theta += d_theta) {
-			float x = cosf(theta) * radius_of_container;
-			float y = sinf(theta) * radius_of_container;
-			containers.push_back(Particle(QVector3D(x, y, z)));
-		}
-	}
-	*/
 }
 
 void SPH::update() {
+	collisionDetection();
 	updateDensity();
 	updateForce();
 	updateVelocityAndPosition();
@@ -68,24 +42,11 @@ void SPH::update() {
 void SPH::updateDensity() {
 	for (int i = 0; i < particles.size(); ++i) {
 		particles[i].density = 0.0f;
-		particles[i].neighbors.clear();
 
-		for (int j = 0; j < particles.size(); ++j) {
-			float r = (particles[i].position - particles[j].position).length();
-			if (r < radius_of_smooth) {
-				particles[i].neighbors.push_back(j);
-				particles[i].density += mass_of_particle * W_poly6(r, radius_of_smooth);
-			}
-		}
-
-		for (int j = 0; j < containers.size(); ++j) {
-			float r = (particles[i].position - containers[j].position).length();
-			if (r < radius_of_smooth) {
-				particles[i].containers.push_back(j);
-				float hoge = W_poly6(r, radius_of_smooth);
-				float hoge2 = mass_of_particle * W_poly6(r, radius_of_smooth);
-				particles[i].density += mass_of_particle * W_poly6(r, radius_of_smooth);
-			}
+		for (int k = 0; k < particles[i].neighbors.size(); ++k) {
+			int j = particles[i].neighbors[k];
+			QVector3D r = particles[i].position - particles[j].position;
+			particles[i].density += mass_of_particle * W_poly6(r.length(), radius_of_smooth);
 		}
 	}
 }
@@ -99,19 +60,12 @@ void SPH::updateForce() {
 			int j = particles[i].neighbors[k];
 			if (j == i) continue;
 			QVector3D r = particles[i].position - particles[j].position;
-			F_pressure += -mass_of_particle * (pressure(particles[i].density) + pressure(particles[j].density)) / 2 / particles[j].density * dW_spiky(r, radius_of_smooth);
+			F_pressure += -particles[i].density * mass_of_particle * (pressure(particles[i].density) / SQR(particles[i].density) + pressure(particles[j].density) / SQR(particles[j].density)) * dW_spiky(r, radius_of_smooth);
 			F_viscosity += viscosity_factor * mass_of_particle * (particles[j].velocity - particles[i].velocity) / particles[j].density * ddW_viscosity(r.length(), radius_of_smooth);
 		}
 
-		for (int k = 0; k < particles[i].containers.size(); ++k) {
-			int j = particles[i].containers[k];
-			QVector3D r = particles[i].position - containers[j].position;
-			F_pressure += -mass_of_particle * (pressure(particles[i].density) + pressure(100)) / 2 / 100 * dW_spiky(r, radius_of_smooth);
-			F_viscosity += viscosity_factor * mass_of_particle * - particles[i].velocity / 100 * ddW_viscosity(r.length(), radius_of_smooth);
-		}
-
 		//particles[i].force = F_pressure + F_viscosity + particles[i].density * QVector3D(0, 0, -98000000);
-		particles[i].force = F_pressure * 0.001 + F_viscosity + QVector3D(0, 0, -98000000);
+		particles[i].force = F_pressure + /*F_viscosity + */ QVector3D(0, 0, -9800);
 	}
 }
 
@@ -119,45 +73,64 @@ void SPH::updateVelocityAndPosition() {
 	for (int i = 0; i < particles.size(); ++i) {
 		QVector3D new_velocity = particles[i].velocity + particles[i].force / particles[i].density * deltaT;
 		particles[i].position += (particles[i].velocity + new_velocity) * 0.5 * deltaT;
-
-		// check z coordinates
-		if (particles[i].position.z() < 0) {
-			particles[i].position.setZ(0.0f);
-			new_velocity.setZ(-new_velocity.z());
-		} else if (particles[i].position.z() > height_of_container) {
-			particles[i].position.setZ(height_of_container);
-			new_velocity.setZ(-new_velocity.z());
-		}
-
-		// check r
-		float r = sqrtf(particles[i].position.x() * particles[i].position.x() + particles[i].position.y() * particles[i].position.y());
-		if (r > radius_of_container) {
-			particles[i].position.setX(particles[i].position.x() / r * radius_of_container);
-			particles[i].position.setY(particles[i].position.y() / r * radius_of_container);
-
-			/*QVector2D v(new_velocity.x(), new_velocity.y());
-			QVector2D n(particles[i].position.x(), particles[i].position.y());
-			n.normalize();
-
-			v = v * 2 - n * QVector2D::dotProduct(v, n) * 2;
-			new_velocity.setX(v.x());
-			new_velocity.setY(v.y());
-			*/
-			new_velocity.setX(0.0f);
-			new_velocity.setY(0.0f);
-		}
-
 		particles[i].velocity = new_velocity;
 	}
-	printf("%lf\n", particles[0].position.z());
 }
 
+void SPH::collisionDetection() {
+	for (int i = 0; i < particles.size(); ++i) {
+		// check z coordinates
+		if (particles[i].position.z() < radius_of_particle) {
+			particles[i].position.setZ(radius_of_particle);
+			particles[i].velocity.setZ(-particles[i].velocity.z() * dumping_factor);
+		} else if (particles[i].position.z() > container_height - radius_of_particle) {
+			particles[i].position.setZ(container_height - radius_of_particle);
+			particles[i].velocity.setZ(-particles[i].velocity.z() * dumping_factor);
+		}
+
+		// check x coordinates
+		if (particles[i].position.x() < -container_width * 0.5 + radius_of_particle) {
+			particles[i].position.setX(-container_width * 0.5 + radius_of_particle);
+			particles[i].velocity.setX(-particles[i].velocity.x() * dumping_factor);
+		} else if (particles[i].position.x() > container_width * 0.5 - radius_of_particle) {
+			particles[i].position.setX(container_width * 0.5 - radius_of_particle);
+			particles[i].velocity.setX(-particles[i].velocity.x() * dumping_factor);
+		}
+
+		// check y coordinates
+		if (particles[i].position.y() < -container_depth * 0.5 + radius_of_particle) {
+			particles[i].position.setY(-container_depth * 0.5 + radius_of_particle);
+			particles[i].velocity.setY(-particles[i].velocity.y() * dumping_factor);
+		} else if (particles[i].position.y() > container_depth * 0.5 - radius_of_particle) {
+			particles[i].position.setY(container_depth * 0.5 - radius_of_particle);
+			particles[i].velocity.setY(-particles[i].velocity.y() * dumping_factor);
+		}
+
+		// check with others
+		particles[i].neighbors.clear();
+		for (int j = 0; j < particles.size(); ++j) {
+			float r = (particles[i].position - particles[j].position).length();
+			if (r < radius_of_smooth) {
+				particles[i].neighbors.push_back(j);
+		
+				if (i != j && r < radius_of_particle * 2) {
+					QVector3D n = particles[i].position - particles[j].position;
+					n.normalize();
+					particles[i].position = particles[j].position + n * radius_of_particle * 2;
+					particles[i].velocity -= n * QVector3D::dotProduct(particles[i].velocity, n) * (1 + dumping_factor);
+				}
+			}
+		}
+	}
+}
+
+
 float SPH::W_poly6(float r, float h) {
-	return 315.0f / 64 / M_PI / powf(h, 9) * powf(h * h - r * r, 3);
+	return 315.0f / 64 / M_PI / powf(h, 9) * powf(SQR(h) - SQR(r), 3);
 }
 
 QVector3D SPH::dW_spiky(const QVector3D& r, float h) {
-	return -45 * (h - r.length()) * (h - r.length()) / M_PI / powf(h, 6) / r.length() * r;
+	return -45 * SQR(h - r.length()) / M_PI / powf(h, 6) / r.length() * r;
 }
 
 float SPH::ddW_viscosity(float r, float h) {

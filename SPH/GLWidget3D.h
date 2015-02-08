@@ -19,6 +19,9 @@ private:
 	Camera camera;
 	QPoint lastPos;
 	SPH* sph;
+	float container_width;
+	float container_depth;
+	float container_height;
 
 public:
 	GLWidget3D();

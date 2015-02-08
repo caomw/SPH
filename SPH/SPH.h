@@ -26,19 +26,23 @@ private:
 	float pressure_factor;
 	float viscosity_factor;
 	float density_0;
+	float dumping_factor;
 	std::vector<Particle> particles;
-	float radius_of_container;
-	float height_of_container;
+
+	float container_width;
+	float container_depth;
+	float container_height;
 	std::vector<Particle> containers;
 	float deltaT;
 
 public:
-	SPH(int num_particles, float radius_of_particle, float radius_of_smooth, float pressure_factor, float viscosity_factor, float density_0, float radius_of_container, float height_of_container, float deltaT);
+	SPH(float radius_of_particle, float radius_of_smooth, float pressure_factor, float viscosity_factor, float density_0, float dumping_factor, float container_width, float container_depth, float container_height, float deltaT);
 
 	void update();
 	void updateDensity();
 	void updateForce();
 	void updateVelocityAndPosition();
+	void collisionDetection();
 	float W_poly6(float r, float h);
 	QVector3D dW_spiky(const QVector3D& r, float h);
 	float ddW_viscosity(float r, float h);

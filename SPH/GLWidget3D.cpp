@@ -11,11 +11,20 @@ GLWidget3D::GLWidget3D() {
 	// set up the camera
 	camera.setLookAt(0.0f, 0.0f, 0.0f);
 	camera.setYRotation(0);
-	camera.setTranslation(0.0f, 0.0f, 3000.0f);
+	camera.setTranslation(0.0f, 0.0f, 200.0f);
 
-	//sph = new SPH(1000, 0.01, 0.06, 1500, 0.001, 1000, 0.15, 0.15, 0.0001);
-	//sph = new SPH(1, 1, 0.06, 1500, 0.001, 1000, 0.15, 0.15, 0.001);
-	sph = new SPH(1000, 10, 30, 1500000, 0.001, 0.001, 150, 300, 0.0001);
+	container_width = 50.0f;
+	container_depth = 50.0f;
+	container_height = 50.0f;
+	sph = new SPH(
+		1,		// radius of particle
+		4,		// radius of smoothing
+		30,	// pressure factor c
+		0.001,  // viscosity factor myu
+		0.001,	// rest density rho_0
+		0.6,	// dumping factor c_R
+		container_width, container_depth, container_height,
+		0.001); // time step
 }
 
 /**
@@ -73,7 +82,7 @@ void GLWidget3D::initializeGL()
 	static GLfloat lightPosition[4] = {0.0f, 0.0f, 100.0f, 0.0f};
 	glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
 
-	timer.start(200, this);
+	timer.start(20, this);
 }
 
 /**
@@ -110,6 +119,25 @@ void GLWidget3D::paintGL()
  */
 void GLWidget3D::drawScene() {
 	sph->draw();
+
+	glLineWidth(1);
+	glBegin(GL_LINE_LOOP);
+	glColor3f(0, 0, 0);
+	glVertex3f(-container_width * 0.5, -container_depth * 0.5, 0);
+	glVertex3f(container_width * 0.5, -container_depth * 0.5, 0);
+	glVertex3f(container_width * 0.5, container_depth * 0.5, 0);
+	glVertex3f(-container_width * 0.5, container_depth * 0.5, 0);
+	glEnd();
+	glBegin(GL_LINES);
+	glVertex3f(-container_width * 0.5, -container_depth * 0.5, 0);
+	glVertex3f(-container_width * 0.5, -container_depth * 0.5, container_height);
+	glVertex3f(container_width * 0.5, -container_depth * 0.5, 0);
+	glVertex3f(container_width * 0.5, -container_depth * 0.5, container_height);
+	glVertex3f(container_width * 0.5, container_depth * 0.5, 0);
+	glVertex3f(container_width * 0.5, container_depth * 0.5, container_height);
+	glVertex3f(-container_width * 0.5, container_depth * 0.5, 0);
+	glVertex3f(-container_width * 0.5, container_depth * 0.5, container_height);
+	glEnd();
 }
 
 QVector2D GLWidget3D::mouseTo2D(int x,int y) {
