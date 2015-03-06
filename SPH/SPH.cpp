@@ -4,13 +4,15 @@
 
 #define SQR(x)	((x) * (x))
 
-SPH::SPH(double radius_of_smooth, double mass_of_particle, double pressure_factor, double viscosity_factor, double density_0, double dumping_factor, double container_width, double container_depth, double container_height, double deltaT) {
+SPH::SPH(double radius_of_smooth, double mass_of_particle, double pressure_factor, double viscosity_factor, double density_0, double surface_coefficient, double surface_threshold, double dumping_factor, double container_width, double container_depth, double container_height, double deltaT) {
 	//this->radius_of_smooth = radius_of_smooth;
 	this->radius_of_smooth = pow(3.0 * 20.0 * mass_of_particle / 4.0 / M_PI / density_0, 1.0 / 3.0);
 	this->mass_of_particle = mass_of_particle;
 	this->pressure_factor = pressure_factor;
 	this->viscosity_factor = viscosity_factor;
 	this->density_0 = density_0;
+	this->surface_coefficient = surface_coefficient;
+	this->surface_threshold = surface_threshold;
 	this->dumping_factor = dumping_factor;
 	this->container_width = container_width;
 	this->container_depth = container_depth;
@@ -27,9 +29,9 @@ SPH::SPH(double radius_of_smooth, double mass_of_particle, double pressure_facto
 		for (float y = -container_depth * 0.5 + radius_of_particle; y <= container_depth * 0.5 - radius_of_particle; y += radius_of_particle * 2) {
 			for (float z = radius_of_particle; z < container_height - radius_of_particle; z += radius_of_particle * 2) {
 				Particle particle(QVector3D(x, y, z));
-				int r = random() * 255;
-				int g = random() * 255;
-				int b = random() * 255;
+				int r = 0;//random() * 255;
+				int g = 0;//random() * 255;
+				int b = 255;//random() * 255;
 				particle.color = QColor(r, g, b);
 				particles.push_back(particle);
 			}
@@ -39,10 +41,11 @@ SPH::SPH(double radius_of_smooth, double mass_of_particle, double pressure_facto
 
 void SPH::update() {
 	updateNeighbors();
-	updateDensity();
-	updateForce();
-	updateVelocityAndPosition();
 	collisionDetection();
+	updateDensity();
+	updateInternalForce();
+	updateExternalForce();
+	updateVelocityAndPosition();
 }
 
 void SPH::updateDensity() {
@@ -59,7 +62,7 @@ void SPH::updateDensity() {
 	}
 }
 
-void SPH::updateForce() {
+void SPH::updateInternalForce() {
 	for (int i = 0; i < particles.size(); ++i) {
 		QVector3D F_pressure;
 		QVector3D F_viscosity;
@@ -72,13 +75,42 @@ void SPH::updateForce() {
 			F_viscosity += viscosity_factor * mass_of_particle * (particles[j].velocity - particles[i].velocity) / particles[j].density * ddW_viscosity(r.length(), radius_of_smooth);
 		}
 
-		particles[i].force = F_pressure + F_viscosity + particles[i].density * QVector3D(0, 0, -9.82);
+		particles[i].internalForce = F_pressure + F_viscosity;
+	}
+}
+
+void SPH::updateExternalForce() {
+	for (int i = 0; i < particles.size(); ++i) {
+		QVector3D F_surface;
+		
+		QVector3D normal;
+		for (int k = 0; k < particles[i].neighbors.size(); ++k) {
+			int j = particles[i].neighbors[k];
+			QVector3D r = particles[i].position - particles[j].position;
+
+			normal += mass_of_particle / particles[j].density * dW_poly6(r, radius_of_smooth);
+		}
+
+		if (normal.length() > surface_threshold) {
+			double c = 0.0;
+
+			for (int k = 0; k < particles[i].neighbors.size(); ++k) {
+				int j = particles[i].neighbors[k];
+				QVector3D r = particles[i].position - particles[j].position;
+
+				c += mass_of_particle / particles[j].density * ddW_poly6(r.length(), radius_of_smooth);
+			}
+
+			F_surface = -surface_coefficient * c * normal.normalized();
+		}
+
+		particles[i].externalForce = F_surface + particles[i].density * QVector3D(0, 0, -9.82);
 	}
 }
 
 void SPH::updateVelocityAndPosition() {
 	for (int i = 0; i < particles.size(); ++i) {
-		QVector3D new_velocity = particles[i].velocity + particles[i].force / particles[i].density * deltaT;
+		QVector3D new_velocity = particles[i].velocity + (particles[i].internalForce + particles[i].externalForce) / particles[i].density * deltaT;
 		particles[i].position += (particles[i].velocity + new_velocity) * 0.5 * deltaT;
 		particles[i].velocity = new_velocity;
 	}
@@ -91,14 +123,7 @@ void SPH::updateNeighbors() {
 		for (int j = 0; j < particles.size(); ++j) {
 			float r = (particles[i].position - particles[j].position).length();
 			if (r < radius_of_smooth) {
-				particles[i].neighbors.push_back(j);
-		
-				if (i != j && r < radius_of_particle * 2) {
-					QVector3D n = particles[i].position - particles[j].position;
-					n.normalize();
-					particles[i].position = particles[j].position + n * radius_of_particle * 2;
-					particles[i].velocity -= n * QVector3D::dotProduct(particles[i].velocity, n) * (1 + dumping_factor);
-				}
+				particles[i].neighbors.push_back(j);		
 			}
 		}
 	}
@@ -134,18 +159,17 @@ void SPH::collisionDetection() {
 		}
 
 		// check with others
-		particles[i].neighbors.clear();
-		for (int j = 0; j < particles.size(); ++j) {
+		for (int k = 0; k < particles[i].neighbors.size(); ++k) {
+			int j = particles[i].neighbors[k];
+			if (i == j) continue;
+
 			float r = (particles[i].position - particles[j].position).length();
-			if (r < radius_of_smooth) {
-				particles[i].neighbors.push_back(j);
-		
-				if (i != j && r < radius_of_particle * 2) {
-					QVector3D n = particles[i].position - particles[j].position;
-					n.normalize();
-					particles[i].position = particles[j].position + n * radius_of_particle * 2;
-					particles[i].velocity -= n * QVector3D::dotProduct(particles[i].velocity, n) * (1 + dumping_factor);
-				}
+			if (r < radius_of_particle) {
+				QVector3D n = particles[i].position - particles[j].position;
+				n.normalize();
+				double d = abs(r - radius_of_particle);
+				particles[i].position = particles[j].position + n * radius_of_particle * 2;
+				particles[i].velocity -= n * QVector3D::dotProduct(particles[i].velocity, n) * (1 + dumping_factor * d / deltaT / particles[i].velocity.length());
 			}
 		}
 	}
@@ -154,6 +178,14 @@ void SPH::collisionDetection() {
 
 double SPH::W_poly6(double r, double h) {
 	return 315.0f / 64.0 / M_PI / pow(h, 9.0) * pow(SQR(h) - SQR(r), 3.0);
+}
+
+QVector3D SPH::dW_poly6(const QVector3D& r, double h) {
+	return -945.0 / 32.0 / M_PI / pow(h, 9.0) * SQR(SQR(h) - r.lengthSquared()) * r;
+}
+
+double SPH::ddW_poly6(double r, double h) {
+	return 945.0 / 32.0 / M_PI / pow(h, 9.0) * (SQR(h) - SQR(r)) * (3.0 * SQR(h) - 7.0 * SQR(r));
 }
 
 QVector3D SPH::dW_spiky(const QVector3D& r, double h) {
