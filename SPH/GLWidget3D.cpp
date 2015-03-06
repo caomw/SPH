@@ -13,9 +13,9 @@ GLWidget3D::GLWidget3D() {
 	camera.setYRotation(0);
 	camera.setTranslation(0.0f, 0.0f, 2.0f);
 
-	container_width = 1.0;
+	container_width = 2.0;
 	container_depth = 0.5;
-	container_height = 0.5;
+	container_height = 1.0;
 	sph = new SPH(
 		0.0457,	// h (radius of smoothing)
 		0.02,	// m (mass of particle)

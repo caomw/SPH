@@ -25,7 +25,7 @@ SPH::SPH(double radius_of_smooth, double mass_of_particle, double pressure_facto
 
 
 	// randomly generate particles
-	for (float x = container_width * -0.5 + radius_of_particle; x <= container_width * -0.3; x += radius_of_particle * 2) {
+	for (float x = container_width * -0.5 + radius_of_particle; x <= container_width * -0.4; x += radius_of_particle * 2) {
 		for (float y = -container_depth * 0.5 + radius_of_particle; y <= container_depth * 0.5 - radius_of_particle; y += radius_of_particle * 2) {
 			for (float z = radius_of_particle; z < container_height - radius_of_particle; z += radius_of_particle * 2) {
 				Particle particle(QVector3D(x, y, z));
@@ -159,6 +159,7 @@ void SPH::collisionDetection() {
 		}
 
 		// check with others
+		/*
 		for (int k = 0; k < particles[i].neighbors.size(); ++k) {
 			int j = particles[i].neighbors[k];
 			if (i == j) continue;
@@ -172,6 +173,7 @@ void SPH::collisionDetection() {
 				particles[i].velocity -= n * QVector3D::dotProduct(particles[i].velocity, n) * (1 + dumping_factor * d / deltaT / particles[i].velocity.length());
 			}
 		}
+		*/
 	}
 }
 
