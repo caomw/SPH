@@ -9,6 +9,7 @@ public:
 	QVector3D position;
 	QVector3D velocity;
 	float density;
+	float pressure;
 	QVector3D force;
 	QColor color;
 	std::vector<int> neighbors;
@@ -20,33 +21,33 @@ public:
 
 class SPH {
 private:
-	float radius_of_particle;
-	float radius_of_smooth;
-	float mass_of_particle;
-	float pressure_factor;
-	float viscosity_factor;
-	float density_0;
-	float dumping_factor;
+	double radius_of_particle;
+	double radius_of_smooth;
+	double mass_of_particle;
+	double pressure_factor;
+	double viscosity_factor;
+	double density_0;
+	double dumping_factor;
 	std::vector<Particle> particles;
 
-	float container_width;
-	float container_depth;
-	float container_height;
+	double container_width;
+	double container_depth;
+	double container_height;
 	std::vector<Particle> containers;
-	float deltaT;
+	double deltaT;
 
 public:
-	SPH(float radius_of_particle, float radius_of_smooth, float pressure_factor, float viscosity_factor, float density_0, float dumping_factor, float container_width, float container_depth, float container_height, float deltaT);
+	SPH(double radius_of_smooth, double mass_of_particle, double pressure_factor, double viscosity_factor, double density_0, double dumping_factor, double container_width, double container_depth, double container_height, double deltaT);
 
 	void update();
 	void updateDensity();
 	void updateForce();
 	void updateVelocityAndPosition();
+	void updateNeighbors();
 	void collisionDetection();
-	float W_poly6(float r, float h);
-	QVector3D dW_spiky(const QVector3D& r, float h);
-	float ddW_viscosity(float r, float h);
-	float pressure(float density);
+	double W_poly6(double r, double h);
+	QVector3D dW_spiky(const QVector3D& r, double h);
+	double ddW_viscosity(double r, double h);
 	void draw();
 	void drawSphere(float x, float y, float z, float r, const QColor& color);
 	float random();

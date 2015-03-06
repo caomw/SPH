@@ -11,20 +11,20 @@ GLWidget3D::GLWidget3D() {
 	// set up the camera
 	camera.setLookAt(0.0f, 0.0f, 0.0f);
 	camera.setYRotation(0);
-	camera.setTranslation(0.0f, 0.0f, 200.0f);
+	camera.setTranslation(0.0f, 0.0f, 2.0f);
 
-	container_width = 50.0f;
-	container_depth = 50.0f;
-	container_height = 50.0f;
+	container_width = 1.0;
+	container_depth = 0.5;
+	container_height = 0.5;
 	sph = new SPH(
-		1,		// radius of particle
-		4,		// radius of smoothing
-		30,	// pressure factor c
-		0.001,  // viscosity factor myu
-		0.001,	// rest density rho_0
+		0.0457,	// h (radius of smoothing)
+		0.02,	// m (mass of particle)
+		3,		// k (pressure factor)
+		3.5,	// myu (viscosity factor)
+		998.29,	// rho_0 (rest density)
 		0.6,	// dumping factor c_R
 		container_width, container_depth, container_height,
-		0.001); // time step
+		0.01);	// time step
 }
 
 /**
@@ -95,7 +95,7 @@ void GLWidget3D::resizeGL(int width, int height)
 	glViewport( 0, 0, (GLint)width, (GLint)height );
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluPerspective(60, (GLfloat)width/(GLfloat)height, 0.1f, 10000);
+	gluPerspective(60, (GLfloat)width/(GLfloat)height, 0.01f, 10000);
 	glMatrixMode(GL_MODELVIEW);
 }
 
