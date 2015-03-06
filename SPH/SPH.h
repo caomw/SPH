@@ -49,6 +49,7 @@ public:
 	void updateVelocityAndPosition();
 	void updateNeighbors();
 	void collisionDetection();
+	void respondCollision(QVector3D& v, const QVector3D& n, double d);
 	double W_poly6(double r, double h);
 	QVector3D dW_poly6(const QVector3D& r, double h);
 	double ddW_poly6(double r, double h);

@@ -134,28 +134,28 @@ void SPH::collisionDetection() {
 		// check z coordinates
 		if (particles[i].position.z() < radius_of_particle) {
 			particles[i].position.setZ(radius_of_particle);
-			particles[i].velocity.setZ(-particles[i].velocity.z() * dumping_factor);
+			respondCollision(particles[i].velocity, QVector3D(0, 0, -1), abs(particles[i].position.z() - radius_of_particle));
 		} else if (particles[i].position.z() > container_height - radius_of_particle) {
 			particles[i].position.setZ(container_height - radius_of_particle);
-			particles[i].velocity.setZ(-particles[i].velocity.z() * dumping_factor);
+			respondCollision(particles[i].velocity, QVector3D(0, 0, 1), abs(particles[i].position.z() - container_height + radius_of_particle));
 		}
 
 		// check x coordinates
 		if (particles[i].position.x() < -container_width * 0.5 + radius_of_particle) {
 			particles[i].position.setX(-container_width * 0.5 + radius_of_particle);
-			particles[i].velocity.setX(-particles[i].velocity.x() * dumping_factor);
+			respondCollision(particles[i].velocity, QVector3D(-1, 0, 0), abs(particles[i].position.x() + container_width * 0.5 - radius_of_particle));
 		} else if (particles[i].position.x() > container_width * 0.5 - radius_of_particle) {
 			particles[i].position.setX(container_width * 0.5 - radius_of_particle);
-			particles[i].velocity.setX(-particles[i].velocity.x() * dumping_factor);
+			respondCollision(particles[i].velocity, QVector3D(1, 0, 0), abs(particles[i].position.x() - container_width * 0.5 + radius_of_particle));
 		}
 
 		// check y coordinates
 		if (particles[i].position.y() < -container_depth * 0.5 + radius_of_particle) {
 			particles[i].position.setY(-container_depth * 0.5 + radius_of_particle);
-			particles[i].velocity.setY(-particles[i].velocity.y() * dumping_factor);
+			respondCollision(particles[i].velocity, QVector3D(0, -1, 0), abs(particles[i].position.y() + container_depth * 0.5 - radius_of_particle));
 		} else if (particles[i].position.y() > container_depth * 0.5 - radius_of_particle) {
 			particles[i].position.setY(container_depth * 0.5 - radius_of_particle);
-			particles[i].velocity.setY(-particles[i].velocity.y() * dumping_factor);
+			respondCollision(particles[i].velocity, QVector3D(0, 1, 0), abs(particles[i].position.y() - container_depth * 0.5 + radius_of_particle));
 		}
 
 		// check with others
@@ -175,6 +175,10 @@ void SPH::collisionDetection() {
 		}
 		*/
 	}
+}
+
+void SPH::respondCollision(QVector3D& v, const QVector3D& n, double d) {
+	v = v - (1.0 + dumping_factor * d / deltaT / v.length()) * QVector3D::dotProduct(v, n) * n;
 }
 
 
