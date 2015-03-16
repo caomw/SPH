@@ -13,7 +13,7 @@ GLWidget3D::GLWidget3D() {
 	camera.setYRotation(0);
 	camera.setTranslation(0.0f, 0.0f, 2.0f);
 
-	container_width = 1.0;
+	container_width = 1.2;
 	container_depth = 0.5;
 	container_height = 0.6;
 	sph = new SPH(
