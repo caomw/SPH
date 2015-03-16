@@ -21,7 +21,7 @@ SPH::SPH(double radius_of_smooth, double mass_of_particle, double pressure_facto
 
 	//float rho = 1000.0f;
 	//float radius_of_particle = 0.5f / powf(rho / mass_of_particle, 1.0/3.0);
-	float radius_of_particle = pow(0.02 / density_0, 1.0/3.0) * 0.5 * 9.0 / 7.0;
+	float radius_of_particle = pow(0.02 / density_0, 1.0/3.0) * 0.5;
 
 
 	// randomly generate particles
@@ -133,28 +133,28 @@ void SPH::collisionDetection() {
 	for (int i = 0; i < particles.size(); ++i) {
 		// check z coordinates
 		if (particles[i].position.z() < radius_of_particle) {
-			respondCollision(particles[i].velocity, QVector3D(0, 0, -1), abs(particles[i].position.z() - radius_of_particle));
+			respondCollision(particles[i].velocity, QVector3D(0, 0, 1), abs(particles[i].position.z() - radius_of_particle));
 			particles[i].position.setZ(radius_of_particle);
 		} else if (particles[i].position.z() > container_height - radius_of_particle) {
-			respondCollision(particles[i].velocity, QVector3D(0, 0, 1), abs(particles[i].position.z() - container_height + radius_of_particle));
+			respondCollision(particles[i].velocity, QVector3D(0, 0, -1), abs(particles[i].position.z() - container_height + radius_of_particle));
 			particles[i].position.setZ(container_height - radius_of_particle);
 		}
 
 		// check x coordinates
 		if (particles[i].position.x() < -container_width * 0.5 + radius_of_particle) {
-			respondCollision(particles[i].velocity, QVector3D(-1, 0, 0), abs(particles[i].position.x() + container_width * 0.5 - radius_of_particle));
+			respondCollision(particles[i].velocity, QVector3D(1, 0, 0), abs(particles[i].position.x() + container_width * 0.5 - radius_of_particle));
 			particles[i].position.setX(-container_width * 0.5 + radius_of_particle);
 		} else if (particles[i].position.x() > container_width * 0.5 - radius_of_particle) {
-			respondCollision(particles[i].velocity, QVector3D(1, 0, 0), abs(particles[i].position.x() - container_width * 0.5 + radius_of_particle));
+			respondCollision(particles[i].velocity, QVector3D(-1, 0, 0), abs(particles[i].position.x() - container_width * 0.5 + radius_of_particle));
 			particles[i].position.setX(container_width * 0.5 - radius_of_particle);
 		}
 
 		// check y coordinates
 		if (particles[i].position.y() < -container_depth * 0.5 + radius_of_particle) {
-			respondCollision(particles[i].velocity, QVector3D(0, -1, 0), abs(particles[i].position.y() + container_depth * 0.5 - radius_of_particle));
+			respondCollision(particles[i].velocity, QVector3D(0, 1, 0), abs(particles[i].position.y() + container_depth * 0.5 - radius_of_particle));
 			particles[i].position.setY(-container_depth * 0.5 + radius_of_particle);
 		} else if (particles[i].position.y() > container_depth * 0.5 - radius_of_particle) {
-			respondCollision(particles[i].velocity, QVector3D(0, 1, 0), abs(particles[i].position.y() - container_depth * 0.5 + radius_of_particle));
+			respondCollision(particles[i].velocity, QVector3D(0, -1, 0), abs(particles[i].position.y() - container_depth * 0.5 + radius_of_particle));
 			particles[i].position.setY(container_depth * 0.5 - radius_of_particle);
 		}
 
