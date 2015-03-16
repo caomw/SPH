@@ -1,12 +1,12 @@
-#include "SPH.h"
+﻿#include "SPH.h"
 #include "GLWidget3D.h"
 #include <GL/GLU.h>
 
 #define SQR(x)	((x) * (x))
 
 SPH::SPH(double radius_of_smooth, double mass_of_particle, double pressure_factor, double viscosity_factor, double density_0, double surface_coefficient, double surface_threshold, double dumping_factor, double container_width, double container_depth, double container_height, double deltaT) {
-	//this->radius_of_smooth = radius_of_smooth;
-	this->radius_of_smooth = pow(3.0 * 20.0 * mass_of_particle / 4.0 / M_PI / density_0, 1.0 / 3.0);
+	this->radius_of_smooth = radius_of_smooth;
+	//this->radius_of_smooth = pow(3.0 * 20.0 * mass_of_particle / 4.0 / M_PI / density_0, 1.0 / 3.0);
 	this->mass_of_particle = mass_of_particle;
 	this->pressure_factor = pressure_factor;
 	this->viscosity_factor = viscosity_factor;
@@ -21,11 +21,11 @@ SPH::SPH(double radius_of_smooth, double mass_of_particle, double pressure_facto
 
 	//float rho = 1000.0f;
 	//float radius_of_particle = 0.5f / powf(rho / mass_of_particle, 1.0/3.0);
-	float radius_of_particle = 0.01 * pow(20.0, 1.0/3.0) * 0.5;
+	float radius_of_particle = pow(0.02 / density_0, 1.0/3.0) * 0.5;
 
 
 	// randomly generate particles
-	for (float x = container_width * -0.5 + radius_of_particle; x <= container_width * -0.4; x += radius_of_particle * 2) {
+	for (float x = container_width * -0.5 + radius_of_particle; x <= container_width * -0.3; x += radius_of_particle * 2) {
 		for (float y = -container_depth * 0.5 + radius_of_particle; y <= container_depth * 0.5 - radius_of_particle; y += radius_of_particle * 2) {
 			for (float z = radius_of_particle; z < container_height - radius_of_particle; z += radius_of_particle * 2) {
 				Particle particle(QVector3D(x, y, z));
@@ -177,6 +177,13 @@ void SPH::collisionDetection() {
 	}
 }
 
+/**
+ * 衝突に基づき、速度ベクトルを更新する。
+ *
+ * @param v [OUT]	現在の速度ベクトル ⇒ 更新後の速度ベクトルに更新される
+ * @param n			衝突における法線ベクトル
+ * @param d			めり込んだ距離
+ */
 void SPH::respondCollision(QVector3D& v, const QVector3D& n, double d) {
 	v = v - (1.0 + dumping_factor * d / deltaT / v.length()) * QVector3D::dotProduct(v, n) * n;
 }

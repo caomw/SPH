@@ -22,9 +22,9 @@ GLWidget3D::GLWidget3D() {
 		3,		// k (pressure factor)
 		3.5,	// myu (viscosity factor)
 		998.29,	// rho_0 (rest density)
-		0.00728, // sigma (surface tension coefficient)
+		0.0728, // sigma (surface tension coefficient)
 		7.065,	// l (surface tension threshold)
-		0.6,	// dumping factor c_R
+		0.0,	// dumping factor c_R
 		container_width, container_depth, container_height,
 		0.01);	// time step
 }
